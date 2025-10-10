@@ -1,0 +1,416 @@
+---
+interface Props {
+	isFirst?: boolean;
+	showRemoveButton?: boolean;
+}
+
+const { isFirst = true, showRemoveButton = false } = Astro.props;
+---
+
+<div class="grape-row">
+	<div class="input-group grape-select-group">
+		<label>{isFirst ? 'Cepa principal' : 'Cepa'}</label>
+		<div class="select-wrapper">
+			<select class="grape-select" required>
+				<option value="">Selecciona una cepa...</option>
+				<optgroup label="Tintos">
+					<option value="malbec">Malbec</option>
+					<option value="cabernet sauvignon">Cabernet Sauvignon</option>
+					<option value="merlot">Merlot</option>
+					<option value="pinot noir">Pinot Noir</option>
+					<option value="syrah">Syrah</option>
+					<option value="tempranillo">Tempranillo</option>
+				</optgroup>
+				<optgroup label="Blancos">
+					<option value="chardonnay">Chardonnay</option>
+					<option value="sauvignon blanc">Sauvignon Blanc</option>
+					<option value="torrontés">Torrontés</option>
+				</optgroup>
+			</select>
+			<span class="select-icon">▼</span>
+		</div>
+	</div>
+	<div class="input-group percentage-group">
+		<label>%</label>
+		<input 
+			type="number" 
+			class="grape-percentage"
+			value={isFirst ? "100" : "0"}
+			min="1" 
+			max="100"
+			step="1"
+			required
+		/>
+	</div>
+	{showRemoveButton && (
+		<button type="button" class="remove-grape-btn">
+			×
+		</button>
+	)}
+</div>
+<style>
+	.container {
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 2rem;
+		position: relative;
+	}
+
+	.hero {
+		text-align: center;
+		margin-bottom: 3rem;
+		animation: fadeInDown 0.8s ease-out;
+	}
+
+	.logo {
+		font-size: 4rem;
+		margin-bottom: 1rem;
+		animation: float 3s ease-in-out infinite;
+	}
+
+	.title {
+		font-family: 'Playfair Display', serif;
+		font-size: 4rem;
+		font-weight: 700;
+		color: white;
+		margin-bottom: 0.5rem;
+		text-shadow: 2px 4px 8px rgba(0, 0, 0, 0.2);
+	}
+
+	.subtitle {
+		font-size: 1.5rem;
+		color: rgba(255, 255, 255, 0.9);
+		font-weight: 300;
+	}
+
+	.feature-section {
+		width: 100%;
+		max-width: 600px;
+		margin-bottom: 3rem;
+		animation: fadeInUp 0.8s ease-out 0.2s both;
+	}
+
+	.feature-card {
+		background: white;
+		border-radius: 24px;
+		padding: 3rem;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+		backdrop-filter: blur(10px);
+		transition: transform 0.3s ease, box-shadow 0.3s ease;
+	}
+
+	.feature-card:hover {
+		transform: translateY(-5px);
+		box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+	}
+
+	.feature-content h2 {
+		font-family: 'Playfair Display', serif;
+		font-size: 2rem;
+		color: #333;
+		margin-bottom: 1rem;
+	}
+
+	.description {
+		font-size: 1.1rem;
+		color: #666;
+		line-height: 1.6;
+		margin-bottom: 2rem;
+	}
+
+	.description strong {
+		color: #667eea;
+		font-weight: 600;
+	}
+
+	.grapes-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+
+	.grape-row {
+		display: flex;
+		gap: 0.75rem;
+		align-items: flex-end;
+		animation: slideIn 0.3s ease-out;
+	}
+
+	.input-group {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.grape-select-group {
+		flex: 1;
+		min-width: 200px;
+	}
+
+	.percentage-group {
+		width: 80px;
+	}
+
+	.year-group {
+		margin-bottom: 1.5rem;
+	}
+
+	.input-group label {
+		font-size: 0.9rem;
+		font-weight: 500;
+		color: #555;
+		margin-bottom: 0.5rem;
+	}
+
+	.input-group input {
+		width: 100%;
+		padding: 0.875rem 1rem;
+		border: 2px solid #e0e0e0;
+		border-radius: 12px;
+		font-size: 1rem;
+		background: #f9f9f9;
+		transition: border-color 0.3s ease;
+		font-family: inherit;
+	}
+
+	.input-group input:focus {
+		outline: none;
+		border-color: #667eea;
+		background: white;
+	}
+
+	.select-wrapper {
+		position: relative;
+		display: block;
+		width: 100%;
+	}
+
+	.grape-select {
+		width: 100%;
+		padding: 0.875rem 2.5rem 0.875rem 1rem;
+		border: 2px solid #e0e0e0;
+		border-radius: 12px;
+		font-size: 1rem;
+		background: #f9f9f9;
+		transition: all 0.3s ease;
+		font-family: inherit;
+		cursor: pointer;
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		box-sizing: border-box;
+	}
+
+	.grape-select:focus {
+		outline: none;
+		border-color: #667eea;
+		background: white;
+	}
+
+	.grape-select:hover {
+		border-color: #667eea80;
+	}
+
+	.select-wrapper .select-icon {
+		position: absolute;
+		right: 1rem;
+		top: 50%;
+		transform: translateY(-50%);
+		color: #667eea;
+		pointer-events: none;
+		font-size: 0.75rem;
+		z-index: 1;
+	}
+
+	.add-grape-btn {
+		width: 100%;
+		padding: 0.75rem 1rem;
+		background: transparent;
+		color: #667eea;
+		border: 2px dashed #667eea;
+		border-radius: 12px;
+		font-size: 0.95rem;
+		font-weight: 500;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		transition: all 0.3s ease;
+		margin-bottom: 1.5rem;
+		font-family: inherit;
+	}
+
+	.add-grape-btn:hover {
+		background: #667eea10;
+		border-color: #764ba2;
+		color: #764ba2;
+	}
+
+	.add-icon {
+		font-size: 1.25rem;
+		font-weight: 600;
+	}
+
+	.remove-grape-btn {
+		padding: 0.5rem;
+		background: #ff4444;
+		color: white;
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		font-size: 1.25rem;
+		width: 40px;
+		height: 40px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.remove-grape-btn:hover {
+		background: #cc0000;
+		transform: scale(1.1);
+	}
+
+	@keyframes slideIn {
+		from {
+			opacity: 0;
+			transform: translateX(-20px);
+		}
+		to {
+			opacity: 1;
+			transform: translateX(0);
+		}
+	}
+
+	.cta-button {
+		width: 100%;
+		padding: 1.25rem 2rem;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: white;
+		border: none;
+		border-radius: 12px;
+		font-size: 1.125rem;
+		font-weight: 600;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		transition: all 0.3s ease;
+		box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+	}
+
+	.cta-button:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+	}
+
+	.cta-button:active {
+		transform: translateY(0);
+	}
+
+	.cta-button.processing {
+		opacity: 0.7;
+		cursor: wait;
+		pointer-events: none;
+	}
+
+	.benefits {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+		gap: 2rem;
+		max-width: 800px;
+		width: 100%;
+		animation: fadeInUp 0.8s ease-out 0.4s both;
+	}
+
+	.benefit-item {
+		text-align: center;
+		color: white;
+	}
+
+	.benefit-icon {
+		font-size: 3rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.benefit-item h3 {
+		font-size: 1.25rem;
+		margin-bottom: 0.5rem;
+		font-weight: 600;
+	}
+
+	.benefit-item p {
+		font-size: 0.95rem;
+		opacity: 0.9;
+		font-weight: 300;
+	}
+
+	@keyframes fadeInDown {
+		from {
+			opacity: 0;
+			transform: translateY(-30px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes fadeInUp {
+		from {
+			opacity: 0;
+			transform: translateY(30px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes float {
+		0%, 100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-10px);
+		}
+	}
+
+	@media (max-width: 768px) {
+		.title {
+			font-size: 3rem;
+		}
+
+		.subtitle {
+			font-size: 1.25rem;
+		}
+
+		.feature-card {
+			padding: 2rem;
+		}
+
+		.grape-row {
+			flex-wrap: wrap;
+		}
+
+		.grape-select-group {
+			min-width: 100%;
+		}
+
+		.percentage-group {
+			width: 100px;
+		}
+
+		.benefits {
+			grid-template-columns: 1fr;
+			gap: 1.5rem;
+		}
+	}
+</style>
+

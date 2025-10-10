@@ -1,0 +1,333 @@
+---
+// Componente para mostrar resultados de maridaje
+---
+
+<div id="wine-result" class="result-container hidden">
+	<div class="result-card">
+		<button id="close-result" class="close-btn">&times;</button>
+		
+		<div class="result-header">
+			<div class="wine-icon">🍷</div>
+			<h2 id="result-title">Análisis Completado</h2>
+			<div id="webgpu-badge" class="badge hidden">
+				<span class="gpu-icon">🧠</span> <span id="badge-text">Procesado con IA + WebGPU</span>
+			</div>
+		</div>
+
+		<div class="result-content">
+			<div class="wine-info">
+				<h3 id="wine-name"></h3>
+				<p id="wine-description" class="description"></p>
+				<p id="wine-characteristics" class="characteristics"></p>
+			</div>
+
+			<div class="analysis-metrics">
+				<div class="metric">
+					<div class="metric-label">Calidad</div>
+					<div class="metric-bar">
+						<div id="quality-bar" class="metric-fill"></div>
+					</div>
+					<div id="quality-value" class="metric-value">0</div>
+				</div>
+				<div class="metric">
+					<div class="metric-label">Complejidad</div>
+					<div class="metric-bar">
+						<div id="complexity-bar" class="metric-fill"></div>
+					</div>
+					<div id="complexity-value" class="metric-value">0</div>
+				</div>
+				<div class="metric">
+					<div class="metric-label">Potencial de Guarda</div>
+					<div class="metric-bar">
+						<div id="aging-bar" class="metric-fill"></div>
+					</div>
+					<div id="aging-value" class="metric-value">0</div>
+				</div>
+			</div>
+
+			<div class="pairings-section">
+				<h3>🍽️ Maridajes Recomendados por IA</h3>
+				<p class="ai-note">Predicciones generadas por red neuronal en tiempo real</p>
+				<div id="pairings-list" class="pairings-grid"></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+	.result-container {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.7);
+		backdrop-filter: blur(8px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+		padding: 1rem;
+		animation: fadeIn 0.3s ease-out;
+	}
+
+	.result-container.hidden {
+		display: none;
+	}
+
+	.result-card {
+		background: white;
+		border-radius: 24px;
+		padding: 2.5rem;
+		max-width: 700px;
+		width: 100%;
+		max-height: 90vh;
+		overflow-y: auto;
+		position: relative;
+		animation: slideUp 0.4s ease-out;
+		box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+	}
+
+	.close-btn {
+		position: absolute;
+		top: 1rem;
+		right: 1rem;
+		background: #f0f0f0;
+		border: none;
+		border-radius: 50%;
+		width: 40px;
+		height: 40px;
+		font-size: 1.5rem;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s ease;
+		color: #666;
+	}
+
+	.close-btn:hover {
+		background: #667eea;
+		color: white;
+		transform: rotate(90deg);
+	}
+
+	.result-header {
+		text-align: center;
+		margin-bottom: 2rem;
+	}
+
+	.wine-icon {
+		font-size: 3rem;
+		margin-bottom: 1rem;
+	}
+
+	.result-header h2 {
+		font-family: 'Playfair Display', serif;
+		font-size: 2rem;
+		color: #333;
+		margin-bottom: 0.5rem;
+	}
+
+	.badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: white;
+		padding: 0.5rem 1rem;
+		border-radius: 20px;
+		font-size: 0.85rem;
+		font-weight: 600;
+		margin-top: 0.5rem;
+	}
+
+	.badge.hidden {
+		display: none;
+	}
+
+	.gpu-icon {
+		font-size: 1rem;
+	}
+
+	.result-content {
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+	}
+
+	.wine-info h3 {
+		font-family: 'Playfair Display', serif;
+		font-size: 1.5rem;
+		color: #667eea;
+		margin-bottom: 0.5rem;
+	}
+
+	.description {
+		font-size: 1rem;
+		color: #666;
+		line-height: 1.6;
+		margin-bottom: 0.75rem;
+	}
+
+	.characteristics {
+		font-size: 0.95rem;
+		color: #888;
+		font-style: italic;
+		line-height: 1.5;
+	}
+
+	.analysis-metrics {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.metric {
+		display: grid;
+		grid-template-columns: 140px 1fr 60px;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.metric-label {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: #555;
+	}
+
+	.metric-bar {
+		background: #e0e0e0;
+		height: 12px;
+		border-radius: 6px;
+		overflow: hidden;
+	}
+
+	.metric-fill {
+		height: 100%;
+		background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+		width: 0;
+		transition: width 1s ease-out;
+		border-radius: 6px;
+	}
+
+	.metric-value {
+		font-weight: 700;
+		color: #667eea;
+		text-align: right;
+	}
+
+	.pairings-section h3 {
+		font-family: 'Playfair Display', serif;
+		font-size: 1.5rem;
+		color: #333;
+		margin-bottom: 0.5rem;
+	}
+
+	.ai-note {
+		font-size: 0.85rem;
+		color: #888;
+		margin-bottom: 1rem;
+		font-style: italic;
+	}
+
+	.pairings-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+		gap: 1rem;
+	}
+
+	.pairing-item {
+		background: white;
+		padding: 1.25rem;
+		border-radius: 12px;
+		border: 2px solid #e0e0e0;
+		transition: all 0.3s ease;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.pairing-item:hover {
+		transform: translateY(-3px);
+		box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
+		border-color: #667eea;
+	}
+
+	.pairing-name {
+		font-weight: 600;
+		color: #333;
+		font-size: 1rem;
+		text-align: left;
+	}
+
+	.pairing-confidence {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.confidence-bar {
+		flex: 1;
+		height: 8px;
+		background: #f0f0f0;
+		border-radius: 4px;
+		overflow: hidden;
+		position: relative;
+	}
+
+	.confidence-fill {
+		height: 100%;
+		background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+		border-radius: 4px;
+		transition: width 1s ease-out;
+		width: 0;
+	}
+
+	.confidence-percent {
+		font-weight: 700;
+		color: #667eea;
+		font-size: 1.1rem;
+		min-width: 45px;
+		text-align: right;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes slideUp {
+		from {
+			opacity: 0;
+			transform: translateY(30px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@media (max-width: 768px) {
+		.result-card {
+			padding: 1.5rem;
+		}
+
+		.metric {
+			grid-template-columns: 1fr;
+			gap: 0.5rem;
+		}
+
+		.metric-value {
+			text-align: left;
+		}
+
+		.pairings-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

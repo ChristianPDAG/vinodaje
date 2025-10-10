@@ -1,0 +1,786 @@
+---
+import Layout from '../layouts/Layout.astro';
+import WineResult from '../components/WineResult.astro';
+import GrapeSelector from '../components/GrapeSelector.astro';
+---
+
+<Layout>
+	<main class="container">
+		<div class="hero">
+			<div class="logo">🍷</div>
+			<h1 class="title">Vinodaje</h1>
+			<p class="subtitle">El maridaje perfecto para tu vino</p>
+			<p>Procesado con IA 🧠 No disponible para Safari</p>
+		</div>
+
+		<section class="feature-section">
+			<div class="feature-card">
+				<div class="feature-content">
+					<h2>¿Qué vino tienes hoy?</h2>
+					<p class="description">
+						Selecciona la cepa (o mezcla de cepas) y el año. Nuestra IA
+						te recomendará el maridaje perfecto. <strong>¿Vino blend?</strong> ¡Agrégale más cepas!
+					</p>
+					
+					<div class="grapes-container" id="grapes-container">
+						<GrapeSelector isFirst={true} showRemoveButton={false} />
+					</div>
+
+					<!-- Template oculto para clonar nuevas cepas -->
+					<div id="grape-row-template" style="display: none;">
+						<GrapeSelector isFirst={false} showRemoveButton={true} />
+					</div>
+
+					<button type="button" class="add-grape-btn" id="add-grape-btn">
+						<span class="add-icon">+</span>
+						<span>Agregar otra cepa (blend)</span>
+					</button>
+
+					<div class="input-group year-group">
+						<label>Año del vino</label>
+						<input 
+							id="year-input"
+							type="number" 
+							placeholder="Ej: 2020" 
+							min="1850" 
+							max="2025" 
+							step="1"
+							required
+						/>
+					</div>
+
+					<button class="cta-button">
+						<span>Descubrir Maridaje</span>
+						<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path d="M4 10h12m0 0l-4-4m4 4l-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+					</button>
+				</div>
+			</div>
+		</section>
+
+		<section class="benefits">
+			<div class="benefit-item">
+				<div class="benefit-icon">⚡</div>
+				<h3>Rápido</h3>
+				<p>Análisis instantáneo con WebGPU</p>
+			</div>
+			<div class="benefit-item">
+				<div class="benefit-icon">🎯</div>
+				<h3>Preciso</h3>
+				<p>Recomendaciones personalizadas</p>
+			</div>
+			<div class="benefit-item">
+				<div class="benefit-icon">🍽️</div>
+				<h3>Completo</h3>
+				<p>Maridajes para cada ocasión</p>
+			</div>
+			<div class="benefit-item">
+				<div class="benefit-icon"><img src="/indies-logo.png" alt="AI Icon" height="30" width="70" /></div>
+				<h3>Indies.cl</h3>
+				<p>Potenciando nuevos desarrollos</p>
+			</div>
+		</section>
+	</main>
+
+	<WineResult />
+</Layout>
+
+<script>
+	import { wineAnalyzer } from '../scripts/winepairing.js';
+
+	let isProcessing = false;
+	let grapeCount = 1;
+
+	// Inicializar WebGPU cuando se carga la página
+	async function init() {
+		const initialized = await wineAnalyzer.initialize();
+		if (initialized) {
+			console.log('✅ WebGPU y Red Neuronal inicializados');
+		} else {
+			console.log('⚠️ WebGPU no disponible, usando modo fallback');
+		}
+	}
+
+	init();
+
+	const ctaButton = document.querySelector('.cta-button') as HTMLButtonElement;
+	const yearInput = document.getElementById('year-input') as HTMLInputElement;
+	const addGrapeBtn = document.getElementById('add-grape-btn') as HTMLButtonElement;
+	const grapesContainer = document.getElementById('grapes-container') as HTMLElement;
+
+	// Establecer el año máximo dinámicamente
+	if (yearInput) {
+		const currentYear = new Date().getFullYear();
+		yearInput.setAttribute('max', currentYear.toString());
+	}
+
+	// Agregar nueva cepa clonando el componente
+	if (addGrapeBtn) {
+		addGrapeBtn.addEventListener('click', () => {
+			const currentRows = grapesContainer?.querySelectorAll('.grape-row');
+			if (currentRows && currentRows.length >= 4) {
+				alert('Máximo 4 cepas permitidas en un blend');
+				return;
+			}
+
+			// Obtener el template oculto
+			const templateContainer = document.getElementById('grape-row-template');
+			if (!templateContainer) {
+				console.error('Template no encontrado');
+				return;
+			}
+
+			// Clonar el grape-row del template
+			const templateRow = templateContainer.querySelector('.grape-row');
+			if (!templateRow) {
+				console.error('Grape row no encontrado en template');
+				return;
+			}
+
+			const grapeRow = templateRow.cloneNode(true) as HTMLElement;
+
+			// Agregar event listener al botón de eliminar
+			const removeBtn = grapeRow.querySelector('.remove-grape-btn');
+			if (removeBtn) {
+				removeBtn.addEventListener('click', () => {
+					grapeRow.remove();
+					updateGrapeLabels();
+					updatePercentages();
+				});
+			}
+			
+			grapesContainer?.appendChild(grapeRow);
+			
+			// Actualizar labels y porcentajes
+			updateGrapeLabels();
+			updatePercentages();
+		});
+	}
+
+	// Actualizar labels de todas las cepas
+	function updateGrapeLabels() {
+		const rows = grapesContainer?.querySelectorAll('.grape-row');
+		if (!rows) return;
+		
+		if (rows.length === 1) {
+			const label = rows[0].querySelector('.grape-select-group label');
+			if (label) label.textContent = 'Cepa principal';
+		} else {
+			rows.forEach((row, index) => {
+				const label = row.querySelector('.grape-select-group label');
+				if (label) label.textContent = `Cepa ${index + 1}`;
+			});
+		}
+	}
+
+	// Distribuir porcentajes equitativamente
+	function updatePercentages() {
+		const percentageInputs = document.querySelectorAll('.grape-percentage') as NodeListOf<HTMLInputElement>;
+		const count = percentageInputs.length;
+		if (count > 1) {
+			const equalPercentage = Math.floor(100 / count);
+			let remainder = 100 - (equalPercentage * count);
+			
+			percentageInputs.forEach((input, index) => {
+				if (index === 0) {
+					input.value = (equalPercentage + remainder).toString();
+				} else {
+					input.value = equalPercentage.toString();
+				}
+			});
+		}
+	}
+
+	// Obtener blend de cepas
+	function getGrapesBlend() {
+		const grapeRows = document.querySelectorAll('.grape-row');
+		const blend: Array<{grape: string, percentage: number}> = [];
+		
+		grapeRows.forEach(row => {
+			const select = row.querySelector('.grape-select') as HTMLSelectElement;
+			const percentageInput = row.querySelector('.grape-percentage') as HTMLInputElement;
+			
+			if (select && percentageInput && select.value) {
+				blend.push({
+					grape: select.value,
+					percentage: parseInt(percentageInput.value) || 0
+				});
+			}
+		});
+		
+		return blend;
+	}
+
+	// Validar porcentajes
+	function validatePercentages(blend: Array<{grape: string, percentage: number}>) {
+		const total = blend.reduce((sum, item) => sum + item.percentage, 0);
+		return total === 100;
+	}
+
+
+	if (ctaButton && yearInput) {
+		ctaButton.addEventListener('click', async () => {
+			if (isProcessing) return;
+
+			// Obtener blend de cepas
+			const blend = getGrapesBlend();
+
+			if (blend.length === 0) {
+				alert('Por favor selecciona al menos una cepa de uva');
+				return;
+			}
+
+			// Validar que los porcentajes sumen 100%
+			if (blend.length > 1 && !validatePercentages(blend)) {
+				const total = blend.reduce((sum, item) => sum + item.percentage, 0);
+				alert(`Los porcentajes deben sumar 100% (actualmente: ${total}%)`);
+				return;
+			}
+
+			const year = yearInput.value.trim();
+
+			if (!year) {
+				alert('Por favor ingresa el año del vino');
+				yearInput.focus();
+				return;
+			}
+
+			// Validar que el año sea un número válido
+			const yearNumber = parseInt(year);
+			if (isNaN(yearNumber)) {
+				alert('Por favor ingresa un año válido');
+				yearInput.focus();
+				return;
+			}
+
+			// Validar que el año no sea futuro
+			const currentYear = new Date().getFullYear();
+			if (yearNumber > currentYear) {
+				alert(`El año no puede ser posterior a ${currentYear}`);
+				yearInput.focus();
+				return;
+			}
+
+			// Validar rango razonable
+			if (yearNumber < 1850) {
+				alert('Por favor ingresa un año válido (a partir de 1850)');
+				yearInput.focus();
+				return;
+			}
+
+			isProcessing = true;
+			ctaButton.classList.add('processing');
+			ctaButton.innerHTML = '<span>Analizando...</span>';
+
+			try {
+				// Analizar con IA (blend o varietal único)
+				const result = await wineAnalyzer.analyzeWineBlend(blend, yearNumber);
+
+				if (result.success) {
+					showResult(result);
+				} else {
+					alert(result.message || 'Error al analizar el vino');
+				}
+			} catch (error) {
+				console.error('Error:', error);
+				alert('Ocurrió un error al procesar tu solicitud');
+			} finally {
+				isProcessing = false;
+				ctaButton.classList.remove('processing');
+				ctaButton.innerHTML = `
+					<span>Descubrir Maridaje</span>
+					<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M4 10h12m0 0l-4-4m4 4l-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+				`;
+			}
+		});
+
+		// Permitir enviar con Enter en el campo de año
+		yearInput.addEventListener('keypress', (e: KeyboardEvent) => {
+			if (e.key === 'Enter' && !isProcessing) {
+				ctaButton.click();
+			}
+		});
+	}
+
+	// Mostrar resultados
+	function showResult(result: any) {
+		const resultContainer = document.getElementById('wine-result');
+		if (!resultContainer) return;
+
+		// Actualizar información del vino
+		const wineName = document.getElementById('wine-name');
+		if (wineName) {
+			wineName.textContent = `${result.grape} ${result.year} (${result.age} años)`;
+		}
+
+		const wineDescription = document.getElementById('wine-description');
+		if (wineDescription) {
+			wineDescription.textContent = `${result.description}. ${result.ageComment}`;
+		}
+
+		const wineCharacteristics = document.getElementById('wine-characteristics');
+		if (wineCharacteristics) {
+			wineCharacteristics.textContent = result.characteristics;
+		}
+
+		// Mostrar badge de IA + WebGPU
+		const webgpuBadge = document.getElementById('webgpu-badge');
+		const badgeText = document.getElementById('badge-text');
+		if (webgpuBadge && badgeText) {
+			if (result.aiPowered && result.webGPUProcessed) {
+				badgeText.textContent = 'Procesado con IA';
+				webgpuBadge.classList.remove('hidden');
+			} else if (result.aiPowered) {
+				badgeText.textContent = 'Procesado con IA (CPU)';
+				webgpuBadge.classList.remove('hidden');
+			} else {
+				webgpuBadge.classList.add('hidden');
+			}
+		}
+
+		// Actualizar métricas con animación
+		if (result.analysis) {
+			setTimeout(() => {
+				updateMetric('quality', result.analysis.quality);
+				updateMetric('complexity', result.analysis.complexity);
+				updateMetric('aging', result.analysis.aging);
+			}, 100);
+		}
+
+		// Mostrar maridajes con barras de progreso
+		const pairingsList = document.getElementById('pairings-list');
+		if (pairingsList && result.aiPredictions) {
+			// Generar HTML para cada maridaje
+			pairingsList.innerHTML = result.aiPredictions
+				.slice(0, 4) // Top 4 recomendaciones
+				.map((pred: any, index: number) => {
+					const percentage = Math.round(pred.score * 100);
+					return `
+						<div class="pairing-item" style="animation-delay: ${index * 0.1}s">
+							<div class="pairing-name">${pred.category}</div>
+							<div class="pairing-confidence">
+								<div class="confidence-bar">
+									<div class="confidence-fill" data-width="${percentage}"></div>
+								</div>
+								<span class="confidence-percent">${percentage}%</span>
+							</div>
+						</div>
+					`;
+				})
+				.join('');
+
+			// Animar las barras de progreso con un pequeño delay
+			setTimeout(() => {
+				const bars = pairingsList.querySelectorAll('.confidence-fill');
+				bars.forEach((bar: Element) => {
+					const width = (bar as HTMLElement).getAttribute('data-width');
+					if (width) {
+						(bar as HTMLElement).style.width = `${width}%`;
+					}
+				});
+			}, 200);
+		}
+
+		// Mostrar el modal
+		resultContainer.classList.remove('hidden');
+	}
+
+	function updateMetric(name: string, value: number) {
+		const bar = document.getElementById(`${name}-bar`);
+		const valueEl = document.getElementById(`${name}-value`);
+
+		if (bar) {
+			bar.style.width = `${Math.min(100, value)}%`;
+		}
+
+		if (valueEl) {
+			valueEl.textContent = `${Math.round(value)}`;
+		}
+	}
+
+	// Cerrar modal
+	const closeButton = document.getElementById('close-result');
+	const resultContainer = document.getElementById('wine-result');
+
+	if (closeButton && resultContainer) {
+		closeButton.addEventListener('click', () => {
+			resultContainer.classList.add('hidden');
+		});
+
+		// Cerrar al hacer click fuera del modal
+		resultContainer.addEventListener('click', (e) => {
+			if (e.target === resultContainer) {
+				resultContainer.classList.add('hidden');
+			}
+		});
+	}
+</script>
+
+<style>
+	.container {
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 2rem;
+		position: relative;
+	}
+
+	.hero {
+		text-align: center;
+		margin-bottom: 3rem;
+		animation: fadeInDown 0.8s ease-out;
+	}
+
+	.logo {
+		font-size: 4rem;
+		margin-bottom: 1rem;
+		animation: float 3s ease-in-out infinite;
+	}
+
+	.title {
+		font-family: 'Playfair Display', serif;
+		font-size: 4rem;
+		font-weight: 700;
+		color: white;
+		margin-bottom: 0.5rem;
+		text-shadow: 2px 4px 8px rgba(0, 0, 0, 0.2);
+	}
+
+	.subtitle {
+		font-size: 1.5rem;
+		color: rgba(255, 255, 255, 0.9);
+		font-weight: 300;
+	}
+
+	.feature-section {
+		width: 100%;
+		max-width: 600px;
+		margin-bottom: 3rem;
+		animation: fadeInUp 0.8s ease-out 0.2s both;
+	}
+
+	.feature-card {
+		background: white;
+		border-radius: 24px;
+		padding: 3rem;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+		backdrop-filter: blur(10px);
+		transition: transform 0.3s ease, box-shadow 0.3s ease;
+	}
+
+	.feature-card:hover {
+		transform: translateY(-5px);
+		box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+	}
+
+	.feature-content h2 {
+		font-family: 'Playfair Display', serif;
+		font-size: 2rem;
+		color: #333;
+		margin-bottom: 1rem;
+	}
+
+	.description {
+		font-size: 1.1rem;
+		color: #666;
+		line-height: 1.6;
+		margin-bottom: 2rem;
+	}
+
+	.description strong {
+		color: #667eea;
+		font-weight: 600;
+	}
+
+	.grapes-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+
+	.grape-row {
+		display: flex;
+		gap: 0.75rem;
+		align-items: flex-end;
+		animation: slideIn 0.3s ease-out;
+	}
+
+	.input-group {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.grape-select-group {
+		flex: 1;
+		min-width: 200px;
+	}
+
+	.percentage-group {
+		width: 80px;
+	}
+
+	.year-group {
+		margin-bottom: 1.5rem;
+	}
+
+	.input-group label {
+		font-size: 0.9rem;
+		font-weight: 500;
+		color: #555;
+		margin-bottom: 0.5rem;
+	}
+
+	.input-group input {
+		width: 100%;
+		padding: 0.875rem 1rem;
+		border: 2px solid #e0e0e0;
+		border-radius: 12px;
+		font-size: 1rem;
+		background: #f9f9f9;
+		transition: border-color 0.3s ease;
+		font-family: inherit;
+	}
+
+	.input-group input:focus {
+		outline: none;
+		border-color: #667eea;
+		background: white;
+	}
+
+	.select-wrapper {
+		position: relative;
+		display: block;
+		width: 100%;
+	}
+
+	.grape-select {
+		width: 100%;
+		padding: 0.875rem 2.5rem 0.875rem 1rem;
+		border: 2px solid #e0e0e0;
+		border-radius: 12px;
+		font-size: 1rem;
+		background: #f9f9f9;
+		transition: all 0.3s ease;
+		font-family: inherit;
+		cursor: pointer;
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		box-sizing: border-box;
+	}
+
+	.grape-select:focus {
+		outline: none;
+		border-color: #667eea;
+		background: white;
+	}
+
+	.grape-select:hover {
+		border-color: #667eea80;
+	}
+
+	.select-wrapper .select-icon {
+		position: absolute;
+		right: 1rem;
+		top: 50%;
+		transform: translateY(-50%);
+		color: #667eea;
+		pointer-events: none;
+		font-size: 0.75rem;
+		z-index: 1;
+	}
+
+	.add-grape-btn {
+		width: 100%;
+		padding: 0.75rem 1rem;
+		background: transparent;
+		color: #667eea;
+		border: 2px dashed #667eea;
+		border-radius: 12px;
+		font-size: 0.95rem;
+		font-weight: 500;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		transition: all 0.3s ease;
+		margin-bottom: 1.5rem;
+		font-family: inherit;
+	}
+
+	.add-grape-btn:hover {
+		background: #667eea10;
+		border-color: #764ba2;
+		color: #764ba2;
+	}
+
+	.add-icon {
+		font-size: 1.25rem;
+		font-weight: 600;
+	}
+
+	.remove-grape-btn {
+		padding: 0.5rem;
+		background: #ff4444;
+		color: white;
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		font-size: 1.25rem;
+		width: 40px;
+		height: 40px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.remove-grape-btn:hover {
+		background: #cc0000;
+		transform: scale(1.1);
+	}
+
+	@keyframes slideIn {
+		from {
+			opacity: 0;
+			transform: translateX(-20px);
+		}
+		to {
+			opacity: 1;
+			transform: translateX(0);
+		}
+	}
+
+	.cta-button {
+		width: 100%;
+		padding: 1.25rem 2rem;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: white;
+		border: none;
+		border-radius: 12px;
+		font-size: 1.125rem;
+		font-weight: 600;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		transition: all 0.3s ease;
+		box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+	}
+
+	.cta-button:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+	}
+
+	.cta-button:active {
+		transform: translateY(0);
+	}
+
+	.cta-button.processing {
+		opacity: 0.7;
+		cursor: wait;
+		pointer-events: none;
+	}
+
+	.benefits {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+		gap: 2rem;
+		max-width: 800px;
+		width: 100%;
+		animation: fadeInUp 0.8s ease-out 0.4s both;
+	}
+
+	.benefit-item {
+		text-align: center;
+		color: white;
+	}
+
+	.benefit-icon {
+		font-size: 3rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.benefit-item h3 {
+		font-size: 1.25rem;
+		margin-bottom: 0.5rem;
+		font-weight: 600;
+	}
+
+	.benefit-item p {
+		font-size: 0.95rem;
+		opacity: 0.9;
+		font-weight: 300;
+	}
+
+	@keyframes fadeInDown {
+		from {
+			opacity: 0;
+			transform: translateY(-30px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes fadeInUp {
+		from {
+			opacity: 0;
+			transform: translateY(30px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes float {
+		0%, 100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-10px);
+		}
+	}
+
+	@media (max-width: 768px) {
+		.title {
+			font-size: 3rem;
+		}
+
+		.subtitle {
+			font-size: 1.25rem;
+		}
+
+		.feature-card {
+			padding: 2rem;
+		}
+
+		.grape-row {
+			flex-wrap: wrap;
+		}
+
+		.grape-select-group {
+			min-width: 100%;
+		}
+
+		.percentage-group {
+			width: 100px;
+		}
+
+		.benefits {
+			grid-template-columns: 1fr;
+			gap: 1.5rem;
+		}
+	}
+</style>
